@@ -15,7 +15,7 @@ class UserProvider extends BaseIntegration {
      */
     async validateCredentials(email, password) {
         try {
-            const response = await this.client.post('/users/validate-credentials', {
+            const response = await this.client.post('/validate-credentials', {
                 email: email.toLowerCase(),
                 password
             });
@@ -32,39 +32,19 @@ class UserProvider extends BaseIntegration {
     }
 
     /**
-     * Create a new user
-     * @param {Object} userData - User data
-     * @returns {Promise<Object>} Created user data
-     */
-    async createUser(userData) {
-        try {
-            const response = await this.client.post('/users', userData);
-            return response.data;
-        } catch (error) {
-            if (error.response?.status === 409) {
-                throw new Error('Email já cadastrado');
-            }
-            if (error.response?.status === 422) {
-                throw new Error('Dados inválidos para criação do usuário');
-            }
-            throw new Error('Erro ao criar usuário');
-        }
-    }
-
-    /**
      * Get user by ID
      * @param {string} userId - User ID
      * @returns {Promise<Object>} User data
      */
     async getUserById(userId) {
         try {
-            const response = await this.client.get(`/users/${userId}`);
+            const response = await this.client.get(`/${userId}`);
             return response.data;
         } catch (error) {
             if (error.response?.status === 404) {
-                throw new Error('Usuário não encontrado');
+                throw new Error('User not found');
             }
-            throw new Error('Erro ao buscar usuário');
+            throw new Error('Error fetching user');
         }
     }
 
@@ -75,13 +55,13 @@ class UserProvider extends BaseIntegration {
      */
     async handleGoogleAuth(googleData) {
         try {
-            const response = await this.client.post('/users/google-auth', googleData);
+            const response = await this.client.post('/google-auth', googleData);
             return response.data;
         } catch (error) {
             if (error.response?.status === 422) {
-                throw new Error('Dados inválidos para autenticação Google');
+                throw new Error('Invalid data for Google authentication');
             }
-            throw new Error('Erro na autenticação Google');
+            throw new Error('Google authentication error');
         }
     }
 
@@ -92,7 +72,7 @@ class UserProvider extends BaseIntegration {
      */
     async updateLastLogin(userId) {
         try {
-            const response = await this.client.patch(`/users/${userId}/last-login`);
+            const response = await this.client.patch(`/${userId}/last-login`);
             return response.data;
         } catch (error) {
             logger.warn('Failed to update last login:', error.message);
@@ -108,13 +88,13 @@ class UserProvider extends BaseIntegration {
      */
     async getUser2FAInfo(userId) {
         try {
-            const response = await this.client.get(`/users/${userId}/2fa-info`);
+            const response = await this.client.get(`/${userId}/2fa-info`);
             return response.data;
         } catch (error) {
             if (error.response?.status === 404) {
-                throw new Error('Usuário não encontrado');
+                throw new Error('User not found');
             }
-            throw new Error('Erro ao buscar informações 2FA');
+            throw new Error('Error fetching 2FA information');
         }
     }
 

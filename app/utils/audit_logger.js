@@ -23,6 +23,8 @@ const AUDIT_ACTIONS = {
     LOGIN: 'LOGIN',
     LOGOUT: 'LOGOUT',
     LOGIN_FAILED: 'LOGIN_FAILED',
+    TOKEN_GENERATED: 'TOKEN_GENERATED',
+    TOKEN_GENERATION_FAILED: 'TOKEN_GENERATION_FAILED',
     PASSWORD_CHANGE: 'PASSWORD_CHANGE',
     PASSWORD_RESET: 'PASSWORD_RESET',
     FORGOT_PASSWORD: 'FORGOT_PASSWORD',
@@ -146,6 +148,23 @@ class AuditLogger {
                 timestamp: new Date().toISOString()
             },
             AUDIT_LEVELS.INFO,
+            ip,
+            userAgent
+        );
+    }
+
+    static logTokenGeneration(user, ip, userAgent, success = true) {
+        const action = success ? AUDIT_ACTIONS.TOKEN_GENERATED : AUDIT_ACTIONS.TOKEN_GENERATION_FAILED;
+        const level = success ? AUDIT_LEVELS.INFO : AUDIT_LEVELS.SECURITY;
+
+        this.log(
+            action,
+            user,
+            {
+                success,
+                timestamp: new Date().toISOString()
+            },
+            level,
             ip,
             userAgent
         );

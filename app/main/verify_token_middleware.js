@@ -1,8 +1,8 @@
 const jwt = require('jsonwebtoken');
 const { TokenBlacklist } = require('../../models');
-const { User } = require('../../models');
 const config = require('../../config/config');
 const logger = require('../../utils/logger');
+const UserProvider = require('../../providers/user_provider');
 
 /**
  * Middleware to verify JWT token
@@ -15,7 +15,7 @@ const verifyToken = async (req, res, next) => {
         if (!token) {
             return res.status(401).json({
                 success: false,
-                message: 'Token de acesso é obrigatório'
+                message: 'Access token is required'
             });
         }
 
@@ -27,22 +27,22 @@ const verifyToken = async (req, res, next) => {
         if (isBlacklisted) {
             return res.status(401).json({
                 success: false,
-                message: 'Token inválido'
+                message: 'Invalid token'
             });
         }
 
         // Verify token
         const decoded = jwt.verify(token, config.jwt.secret);
 
-        // Get user info
-        const user = await User.findByPk(decoded.userId, {
-            attributes: ['id', 'email', 'name', 'role', 'isActive', 'isEmailVerified']
-        });
+        // Get user info via UserProvider
+        const userProvider = new UserProvider();
+        const response = await userProvider.getUserById(decoded.userId);
+        const user = response.user;
 
         if (!user || !user.isActive) {
             return res.status(401).json({
                 success: false,
-                message: 'Usuário não encontrado ou inativo'
+                message: 'User not found or inactive'
             });
         }
 
@@ -62,20 +62,20 @@ const verifyToken = async (req, res, next) => {
         if (error.name === 'JsonWebTokenError') {
             return res.status(401).json({
                 success: false,
-                message: 'Token inválido'
+                message: 'Invalid token'
             });
         }
 
         if (error.name === 'TokenExpiredError') {
             return res.status(401).json({
                 success: false,
-                message: 'Token expirado'
+                message: 'Token expired'
             });
         }
 
         return res.status(500).json({
             success: false,
-            message: 'Erro interno do servidor'
+            message: 'Internal server error'
         });
     }
 };
@@ -88,7 +88,7 @@ const requireRole = (roles) => {
         if (!req.user) {
             return res.status(401).json({
                 success: false,
-                message: 'Acesso não autorizado'
+                message: 'Unauthorized access'
             });
         }
 
@@ -98,7 +98,7 @@ const requireRole = (roles) => {
         if (!allowedRoles.includes(userRole)) {
             return res.status(403).json({
                 success: false,
-                message: 'Acesso negado. Permissão insuficiente.'
+                message: 'Access denied. Insufficient permissions.'
             });
         }
 
@@ -113,14 +113,14 @@ const requireEmailVerification = (req, res, next) => {
     if (!req.user) {
         return res.status(401).json({
             success: false,
-            message: 'Acesso não autorizado'
+            message: 'Unauthorized access'
         });
     }
 
     if (!req.user.isEmailVerified) {
         return res.status(403).json({
             success: false,
-            message: 'Email não verificado. Verifique seu email antes de continuar.'
+            message: 'Email not verified. Please verify your email before continuing.'
         });
     }
 
@@ -134,7 +134,7 @@ const requireEmailVerification = (req, res, next) => {
 const verifyTokenProgrammatically = async (token) => {
     try {
         if (!token) {
-            throw new Error('Token é obrigatório');
+            throw new Error('Token is required');
         }
 
         // Check if token is blacklisted
@@ -143,7 +143,7 @@ const verifyTokenProgrammatically = async (token) => {
         });
 
         if (isBlacklisted) {
-            throw new Error('Token inválido');
+            throw new Error('Invalid token');
         }
 
         // Verify token
@@ -155,7 +155,7 @@ const verifyTokenProgrammatically = async (token) => {
         });
 
         if (!user || !user.isActive) {
-            throw new Error('Usuário não encontrado ou inativo');
+            throw new Error('User not found or inactive');
         }
 
         return {

@@ -2,6 +2,7 @@ const dotenv = require('dotenv');
 dotenv.config();
 const { connect } = require('../../config/database');
 const { scheduleTokenCleanup } = require('../../utils/token-cleanup');
+const logger = require('../utils/logger');
 
 const bootstrap = async (environment = process.env.NODE_ENV ? process.env.NODE_ENV : 'development') => {
     let environmentVariabels = {};

@@ -29,10 +29,10 @@ module.exports = {
         logging: process.env.DB_LOGGING === 'true'
     },
     jwt: {
-        secret: process.env.JWT_SECRET || 'your-super-secret-jwt-key-change-this-in-production',
-        refreshSecret: process.env.JWT_REFRESH_SECRET || 'your-super-secret-refresh-key-change-this-in-production',
-        accessTokenExpiry: process.env.JWT_EXPIRES_IN || '24h',
-        refreshTokenExpiry: process.env.JWT_REFRESH_EXPIRES_IN || '7d'
+        secret: process.env.JWT_SECRET,
+        refreshSecret: process.env.JWT_REFRESH_SECRET,
+        accessTokenExpiry: process.env.JWT_EXPIRES_IN,
+        refreshTokenExpiry: process.env.JWT_REFRESH_EXPIRES_IN
     },
     google: {
         clientId: process.env.GOOGLE_CLIENT_ID,

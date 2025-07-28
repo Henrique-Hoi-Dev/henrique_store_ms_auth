@@ -1,4 +1,4 @@
-const ev = require('express-validation');
+// Removed express-validation dependency
 const _ = require('lodash');
 const ValidationsErrorHandler = require('./validations_error_handler');
 const validationsErrorHandler = new ValidationsErrorHandler();
@@ -47,7 +47,7 @@ function handleError(err, req, res, next) {
         const message = require('../../locale/error/en.json');
         err.message = message[err.key] || err.message || 'Internal server error';
 
-        if (err instanceof ev.ValidationError || err.error === 'Unprocessable Entity') {
+        if (err.error === 'Unprocessable Entity' || err.errors) {
             err = validationsErrorHandler.errorResponse(err);
         } else if (err instanceof Error) {
             err = _.pick(err, [
@@ -179,7 +179,7 @@ function errorHandler(err, req, res, next) {
     if (err.key === 'TOKEN_EXPIRED') {
         return res.status(401).json({
             error: {
-                message: 'Token expirado. Faça login novamente.',
+                message: 'Token expired. Please login again.',
                 status: 401,
                 key: 'TOKEN_EXPIRED',
                 errorCode: keys['TOKEN_EXPIRED'] || 401
@@ -190,7 +190,7 @@ function errorHandler(err, req, res, next) {
     if (err.key === 'TOKEN_REQUIRED') {
         return res.status(401).json({
             error: {
-                message: 'Token de autenticação é obrigatório.',
+                message: 'Authentication token is required.',
                 status: 401,
                 key: 'TOKEN_REQUIRED',
                 errorCode: keys['TOKEN_REQUIRED'] || 401
@@ -201,7 +201,7 @@ function errorHandler(err, req, res, next) {
     if (err.key === 'INVALID_TOKEN_FORMAT') {
         return res.status(401).json({
             error: {
-                message: 'Formato de token inválido. Use: Bearer <token>',
+                message: 'Invalid token format. Use: Bearer <token>',
                 status: 401,
                 key: 'INVALID_TOKEN_FORMAT',
                 errorCode: keys['INVALID_TOKEN_FORMAT'] || 401
@@ -212,7 +212,7 @@ function errorHandler(err, req, res, next) {
     if (err.key === 'INVALID_TOKEN_SIGNATURE') {
         return res.status(401).json({
             error: {
-                message: 'Assinatura do token inválida.',
+                message: 'Invalid token signature.',
                 status: 401,
                 key: 'INVALID_TOKEN_SIGNATURE',
                 errorCode: keys['INVALID_TOKEN_SIGNATURE'] || 401
@@ -223,7 +223,7 @@ function errorHandler(err, req, res, next) {
     if (err.key === 'TOKEN_NOT_ACTIVE') {
         return res.status(401).json({
             error: {
-                message: 'Token ainda não está ativo.',
+                message: 'Token is not yet active.',
                 status: 401,
                 key: 'TOKEN_NOT_ACTIVE',
                 errorCode: keys['TOKEN_NOT_ACTIVE'] || 401
@@ -234,7 +234,7 @@ function errorHandler(err, req, res, next) {
     if (err.key === 'TOKEN_BLACKLISTED') {
         return res.status(401).json({
             error: {
-                message: 'Token foi invalidado. Faça login novamente.',
+                message: 'Token has been invalidated. Please login again.',
                 status: 401,
                 key: 'TOKEN_BLACKLISTED',
                 errorCode: keys['TOKEN_BLACKLISTED'] || 401
@@ -245,7 +245,7 @@ function errorHandler(err, req, res, next) {
     if (err.key === 'SESSION_INVALIDATED') {
         return res.status(401).json({
             error: {
-                message: 'Sessão foi invalidada. Faça login novamente.',
+                message: 'Session has been invalidated. Please login again.',
                 status: 401,
                 key: 'SESSION_INVALIDATED',
                 errorCode: keys['SESSION_INVALIDATED'] || 401
@@ -256,7 +256,7 @@ function errorHandler(err, req, res, next) {
     if (err.key === 'SESSION_VALIDATION_ERROR') {
         return res.status(401).json({
             error: {
-                message: 'Erro na validação da sessão. Faça login novamente.',
+                message: 'Session validation error. Please login again.',
                 status: 401,
                 key: 'SESSION_VALIDATION_ERROR',
                 errorCode: keys['SESSION_VALIDATION_ERROR'] || 401
@@ -266,7 +266,7 @@ function errorHandler(err, req, res, next) {
 
     res.status(err.status || 500).json({
         error: {
-            message: err.message || 'Erro interno do servidor',
+            message: err.message || 'Internal server error',
             status: err.status || 500,
             key: err.key || 'INTERNAL_SERVER_ERROR',
             errorCode: keys[err.key] || 500

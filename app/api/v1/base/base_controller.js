@@ -1,5 +1,5 @@
 const HttpStatus = require('http-status');
-const ev = require('express-validation');
+// Removed express-validation dependency
 const camelcaseKeys = require('camelcase-keys');
 const ValidationsErrorHandler = require('../../../main/validations_error_handler');
 const validationsErrorHandler = new ValidationsErrorHandler();
@@ -54,7 +54,7 @@ class BaseController {
         if (this.errorHandler) {
             return this.errorHandler.errorResponse(error);
         }
-        if (error instanceof ev.ValidationError || error.error === 'Unprocessable Entity') {
+        if (error.error === 'Unprocessable Entity' || error.errors) {
             return this.validationsErrorHandler.errorResponse(error);
         }
         let message = error.message || error.errorMessage;

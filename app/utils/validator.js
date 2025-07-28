@@ -1,4 +1,3 @@
-const { validate } = require('express-validation');
+const { validateRequest } = require('./joi_middleware');
 
-module.exports = (schema) =>
-    validate(schema, { context: true, statusCode: 422, keyByField: false }, { abortEarly: false });
+module.exports = (schema) => validateRequest(schema);

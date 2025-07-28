@@ -1,98 +1,108 @@
-const { body, param, query } = require('express-validation');
+const Joi = require('joi');
 
 /**
- * Authentication validation rules
+ * Authentication validation schemas using Joi
  */
 const validation = {
     /**
-     * User registration validation
+     * Generate tokens validation
      */
-    register: [
-        body('email').isEmail().withMessage('Email deve ser válido').normalizeEmail(),
-        body('password')
-            .isLength({ min: 8 })
-            .withMessage('Senha deve ter pelo menos 8 caracteres')
-            .matches(/^(?=.*[a-z])(?=.*[A-Z])(?=.*\d)/)
-            .withMessage('Senha deve conter pelo menos uma letra maiúscula, uma minúscula e um número'),
-        body('name')
-            .isLength({ min: 2, max: 100 })
-            .withMessage('Nome deve ter entre 2 e 100 caracteres')
-            .matches(/^[a-zA-ZÀ-ÿ\s]+$/)
-            .withMessage('Nome deve conter apenas letras e espaços'),
-        body('role').optional().isIn(['BUYER', 'SELLER', 'ADMIN']).withMessage('Role deve ser BUYER, SELLER ou ADMIN')
-    ],
+    generateTokens: Joi.object({
+        userId: Joi.string().required().messages({
+            'any.required': 'User ID is required',
+            'string.base': 'User ID must be a string'
+        }),
+        email: Joi.string().email().normalize().required().messages({
+            'string.email': 'Email must be valid',
+            'any.required': 'Email is required'
+        }),
+        role: Joi.string().valid('BUYER', 'SELLER', 'ADMIN').required().messages({
+            'any.only': 'Role must be BUYER, SELLER or ADMIN',
+            'any.required': 'Role is required'
+        })
+    }),
 
     /**
-     * User login validation
+     * Verify token validation
      */
-    login: [
-        body('email').isEmail().withMessage('Email deve ser válido').normalizeEmail(),
-        body('password').notEmpty().withMessage('Senha é obrigatória')
-    ],
-
-    /**
-     * Google OAuth2 authentication validation
-     */
-    authenticateWithGoogle: [
-        body('code')
-            .notEmpty()
-            .withMessage('Código de autorização é obrigatório')
-            .isString()
-            .withMessage('Código deve ser uma string')
-    ],
-
-    /**
-     * Token refresh validation
-     */
-    refreshToken: [
-        body('refreshToken')
-            .notEmpty()
-            .withMessage('Refresh token é obrigatório')
-            .isString()
-            .withMessage('Refresh token deve ser uma string')
-    ],
+    verifyToken: Joi.object({
+        token: Joi.string().required().messages({
+            'any.required': 'Token is required',
+            'string.base': 'Token must be a string'
+        })
+    }),
 
     /**
      * Logout validation
      */
-    logout: [
-        body('accessToken').optional().isString().withMessage('Access token deve ser uma string'),
-        body('refreshToken').optional().isString().withMessage('Refresh token deve ser uma string')
-    ],
+    logout: Joi.object({
+        token: Joi.string().required().messages({
+            'any.required': 'Token is required',
+            'string.base': 'Token must be a string'
+        })
+    }),
 
     /**
-     * Complete 2FA validation
+     * Forgot password validation
      */
-    complete2FA: [
-        body('userId')
-            .notEmpty()
-            .withMessage('ID do usuário é obrigatório')
-            .isUUID()
-            .withMessage('ID do usuário deve ser um UUID válido'),
-        body('token')
-            .notEmpty()
-            .withMessage('Token 2FA é obrigatório')
-            .isString()
-            .withMessage('Token deve ser uma string'),
-        body('method').isIn(['totp', 'backup']).withMessage('Método deve ser "totp" ou "backup"')
-    ],
+    forgotPassword: Joi.object({
+        email: Joi.string().email().normalize().required().messages({
+            'string.email': 'Email must be valid',
+            'any.required': 'Email is required'
+        }),
+        userId: Joi.string().required().messages({
+            'any.required': 'User ID is required',
+            'string.base': 'User ID must be a string'
+        })
+    }),
 
     /**
-     * Complete Google 2FA validation
+     * Verify reset token validation
      */
-    completeGoogle2FA: [
-        body('userId')
-            .notEmpty()
-            .withMessage('ID do usuário é obrigatório')
-            .isUUID()
-            .withMessage('ID do usuário deve ser um UUID válido'),
-        body('token')
-            .notEmpty()
-            .withMessage('Token 2FA é obrigatório')
-            .isString()
-            .withMessage('Token deve ser uma string'),
-        body('method').isIn(['totp', 'backup']).withMessage('Método deve ser "totp" ou "backup"')
-    ]
+    verifyResetToken: Joi.object({
+        token: Joi.string().required().messages({
+            'any.required': 'Token is required',
+            'string.base': 'Token must be a string'
+        })
+    }),
+
+    /**
+     * Confirm password reset validation
+     */
+    confirmPasswordReset: Joi.object({
+        token: Joi.string().required().messages({
+            'any.required': 'Token is required',
+            'string.base': 'Token must be a string'
+        }),
+        userId: Joi.string().required().messages({
+            'any.required': 'User ID is required',
+            'string.base': 'User ID must be a string'
+        })
+    }),
+
+    /**
+     * Verify email token validation
+     */
+    verifyEmailToken: Joi.object({
+        token: Joi.string().required().messages({
+            'any.required': 'Token is required',
+            'string.base': 'Token must be a string'
+        })
+    }),
+
+    /**
+     * Resend verification validation
+     */
+    resendVerification: Joi.object({
+        email: Joi.string().email().normalize().required().messages({
+            'string.email': 'Email must be valid',
+            'any.required': 'Email is required'
+        }),
+        userId: Joi.string().required().messages({
+            'any.required': 'User ID is required',
+            'string.base': 'User ID must be a string'
+        })
+    })
 };
 
 module.exports = validation;

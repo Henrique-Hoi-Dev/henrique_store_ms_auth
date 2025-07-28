@@ -10,115 +10,18 @@ class AuthController extends BaseController {
     }
 
     /**
-     * User Login
-     * POST /auth/login
+     * Generate Tokens
+     * POST /auth/generate-tokens
      */
-    async login(req, res, next) {
+    async generateTokens(req, res, next) {
         try {
-            const { email, password } = req.body;
-            const data = await this._authService.login(email, password);
+            const data = await this._authService.generateTokens(req.body);
 
-            // Audit log successful login
-            AuditLogger.logLogin(
+            // Audit log successful token generation
+            AuditLogger.logTokenGeneration(
                 {
-                    id: data.userId,
-                    email: email
-                },
-                AuditLogger.getClientIP(req),
-                AuditLogger.getUserAgent(req),
-                true,
-                'email_password'
-            );
-
-            res.status(HttpStatus.status.OK).json(this.parseKeysToCamelcase({ data }));
-        } catch (err) {
-            // Audit log failed login
-            AuditLogger.logLogin(
-                { email: req.body.email },
-                AuditLogger.getClientIP(req),
-                AuditLogger.getUserAgent(req),
-                false,
-                'email_password'
-            );
-            next(this.handleError(err));
-        }
-    }
-
-    /**
-     * User Registration
-     * POST /auth/register
-     */
-    async register(req, res, next) {
-        try {
-            const data = await this._authService.register(req.body);
-
-            // Audit log - extract user info from request body
-            AuditLogger.logUserCreated(
-                {
-                    id: data.userId,
-                    email: req.body.email,
-                    name: req.body.name,
-                    role: req.body.role || 'BUYER'
-                },
-                null, // No creator for self-registration
-                AuditLogger.getClientIP(req),
-                AuditLogger.getUserAgent(req)
-            );
-
-            res.status(HttpStatus.status.CREATED).json(this.parseKeysToCamelcase({ data }));
-        } catch (err) {
-            next(this.handleError(err));
-        }
-    }
-
-    /**
-     * Google OAuth2 Authentication
-     * POST /auth/google
-     */
-    async authenticateWithGoogle(req, res, next) {
-        try {
-            const data = await this._authService.authenticateWithGoogle(req.body.code);
-
-            // Audit log successful Google login
-            AuditLogger.logLogin(
-                {
-                    id: data.userId,
-                    email: data.email || 'google_oauth2_user'
-                },
-                AuditLogger.getClientIP(req),
-                AuditLogger.getUserAgent(req),
-                true,
-                'google_oauth2'
-            );
-
-            res.status(HttpStatus.status.OK).json(this.parseKeysToCamelcase({ data }));
-        } catch (err) {
-            // Audit log failed Google login
-            AuditLogger.logLogin(
-                { email: 'google_oauth2_user' },
-                AuditLogger.getClientIP(req),
-                AuditLogger.getUserAgent(req),
-                false,
-                'google_oauth2'
-            );
-            next(this.handleError(err));
-        }
-    }
-
-    /**
-     * Refresh Token
-     * POST /auth/refresh
-     */
-    async refreshToken(req, res, next) {
-        try {
-            const { refreshToken } = req.body;
-            const data = await this._authService.refreshToken(refreshToken);
-
-            // Audit log successful token refresh
-            AuditLogger.logTokenRefresh(
-                {
-                    id: data.userId,
-                    email: data.email
+                    id: req.body.userId,
+                    email: req.body.email
                 },
                 AuditLogger.getClientIP(req),
                 AuditLogger.getUserAgent(req),
@@ -127,13 +30,30 @@ class AuthController extends BaseController {
 
             res.status(HttpStatus.status.OK).json(this.parseKeysToCamelcase({ data }));
         } catch (err) {
-            // Audit log failed token refresh
-            AuditLogger.logTokenRefresh(
-                { email: 'unknown' },
+            // Audit log failed token generation
+            AuditLogger.logTokenGeneration(
+                {
+                    id: req.body.userId,
+                    email: req.body.email
+                },
                 AuditLogger.getClientIP(req),
                 AuditLogger.getUserAgent(req),
                 false
             );
+            next(this.handleError(err));
+        }
+    }
+
+    /**
+     * Verify Token
+     * POST /auth/verify-token
+     */
+    async verifyToken(req, res, next) {
+        try {
+            const data = await this._authService.verifyToken(req.body.token);
+
+            res.status(HttpStatus.status.OK).json(this.parseKeysToCamelcase({ data }));
+        } catch (err) {
             next(this.handleError(err));
         }
     }
@@ -144,8 +64,8 @@ class AuthController extends BaseController {
      */
     async logout(req, res, next) {
         try {
-            const { accessToken, refreshToken } = req.body;
-            await this._authService.logout(accessToken, refreshToken);
+            const { token } = req.body;
+            await this._authService.logout(token);
 
             // Audit log successful logout
             AuditLogger.logLogout(
@@ -169,13 +89,37 @@ class AuthController extends BaseController {
     }
 
     /**
-     * Verify Token
-     * GET /auth/verify-token
+     * Forgot Password
+     * POST /auth/forgot-password
      */
-    async verifyToken(req, res, next) {
+    async forgotPassword(req, res, next) {
         try {
-            const token = req.headers.authorization?.replace('Bearer ', '') || req.query.token;
-            const data = await this._authService.verifyToken(token);
+            await this._authService.forgotPassword(req.body);
+
+            // Audit log password reset request
+            AuditLogger.logPasswordReset(
+                { email: req.body.email },
+                AuditLogger.getClientIP(req),
+                AuditLogger.getUserAgent(req)
+            );
+
+            res.status(HttpStatus.status.OK).json(
+                this.parseKeysToCamelcase({
+                    message: 'Email de recuperação enviado'
+                })
+            );
+        } catch (err) {
+            next(this.handleError(err));
+        }
+    }
+
+    /**
+     * Verify Reset Token
+     * POST /auth/verify-reset-token
+     */
+    async verifyResetToken(req, res, next) {
+        try {
+            const data = await this._authService.verifyResetToken(req.body.token);
 
             res.status(HttpStatus.status.OK).json(this.parseKeysToCamelcase({ data }));
         } catch (err) {
@@ -184,25 +128,30 @@ class AuthController extends BaseController {
     }
 
     /**
-     * Complete Login with 2FA
-     * POST /auth/complete-2fa
+     * Confirm Password Reset
+     * POST /auth/confirm-password-reset
      */
-    async completeLoginWith2FA(req, res, next) {
+    async confirmPasswordReset(req, res, next) {
         try {
-            const { userId, token, method } = req.body;
-            const data = await this._authService.completeLoginWith2FA(userId, token, method);
+            await this._authService.confirmPasswordReset(req.body.token, req.body.userId);
 
-            // Audit log successful 2FA login
-            AuditLogger.logLogin(
-                {
-                    id: data.userId,
-                    email: data.email
-                },
-                AuditLogger.getClientIP(req),
-                AuditLogger.getUserAgent(req),
-                true,
-                '2fa'
+            res.status(HttpStatus.status.OK).json(
+                this.parseKeysToCamelcase({
+                    message: 'Reset de senha confirmado'
+                })
             );
+        } catch (err) {
+            next(this.handleError(err));
+        }
+    }
+
+    /**
+     * Verify Email Token
+     * POST /auth/verify-email-token
+     */
+    async verifyEmailToken(req, res, next) {
+        try {
+            const data = await this._authService.verifyEmailToken(req.body.token);
 
             res.status(HttpStatus.status.OK).json(this.parseKeysToCamelcase({ data }));
         } catch (err) {
@@ -211,26 +160,18 @@ class AuthController extends BaseController {
     }
 
     /**
-     * Complete Google OAuth2 login with 2FA
-     * POST /auth/google/complete-2fa
+     * Resend Verification
+     * POST /auth/resend-verification
      */
-    async completeGoogleLoginWith2FA(req, res, next) {
+    async resendVerification(req, res, next) {
         try {
-            const data = await this._authService.completeGoogleLoginWith2FA(req.body.userId, req.body);
+            await this._authService.resendVerification(req.body);
 
-            // Audit log successful Google login with 2FA
-            AuditLogger.logLogin(
-                {
-                    id: data.userId,
-                    email: 'google_oauth2_user'
-                },
-                AuditLogger.getClientIP(req),
-                AuditLogger.getUserAgent(req),
-                true,
-                'google_oauth2_2fa'
+            res.status(HttpStatus.status.OK).json(
+                this.parseKeysToCamelcase({
+                    message: 'Email de verificação reenviado'
+                })
             );
-
-            res.status(HttpStatus.status.OK).json(this.parseKeysToCamelcase({ data }));
         } catch (err) {
             next(this.handleError(err));
         }

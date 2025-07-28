@@ -29,13 +29,13 @@ const generateToken = ({ payload = {}, options = {} } = {}) => {
  * @param {Object} options - Opções adicionais
  * @returns {string} Token de acesso
  */
-const generateAccessToken = ({ user, options = {} } = {}) => {
-    if (!user || !user.id) {
+const generateAccessToken = (user, options = {}) => {
+    if (!user || !user.userId) {
         throw new Error('USER_DATA_REQUIRED');
     }
 
     const payload = {
-        id: user.id,
+        id: user.userId,
         email: user.email,
         role: user.role,
         type: 'access'
@@ -56,13 +56,13 @@ const generateAccessToken = ({ user, options = {} } = {}) => {
  * @param {Object} options - Opções adicionais
  * @returns {string} Token de refresh
  */
-const generateRefreshToken = ({ user, options = {} } = {}) => {
-    if (!user || !user.id) {
+const generateRefreshToken = (user, options = {}) => {
+    if (!user || !user.userId) {
         throw new Error('USER_DATA_REQUIRED');
     }
 
     const payload = {
-        id: user.id,
+        id: user.userId,
         type: 'refresh'
     };
 
