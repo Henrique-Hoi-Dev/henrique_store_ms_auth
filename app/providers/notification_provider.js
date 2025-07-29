@@ -4,7 +4,6 @@ const BaseIntegration = require('../api/v1/base/base_integration');
 class NotificationProvider extends BaseIntegration {
     constructor() {
         super('NOTIFICATION_MS');
-        this.client = this.httpClient;
     }
 
     /**

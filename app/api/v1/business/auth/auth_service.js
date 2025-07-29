@@ -4,7 +4,7 @@ const config = require('../../../../../config/config');
 const logger = require('../../../../utils/logger');
 const UserProvider = require('../../../../providers/user_provider');
 const AuthModelBlacklist = require('./auth_model_blacklist');
-const { generateAccessToken, generateRefreshToken, verifyToken: verifyJWTToken } = require('../../../../utils/jwt');
+const { generateAccessToken, generateRefreshToken, validVerifyToken } = require('../../../../utils/jwt');
 
 class AuthService extends BaseService {
     constructor() {
@@ -18,7 +18,6 @@ class AuthService extends BaseService {
      */
     async generateTokens(userData) {
         try {
-            console.log('userData', userData);
             const { userId, email, role } = userData;
 
             if (!userId || !email || !role) {
@@ -53,11 +52,11 @@ class AuthService extends BaseService {
      */
     async verifyToken(token) {
         try {
+            token = token.replace('Bearer ', '');
             if (!token) {
                 throw new Error('Token is required');
             }
 
-            // Check if token is blacklisted
             const isBlacklisted = await this._modelBlacklist.findOne({
                 where: { token }
             });
@@ -67,14 +66,15 @@ class AuthService extends BaseService {
             }
 
             // Verify JWT token
-            const decoded = verifyJWTToken(token);
+            const decoded = validVerifyToken(token);
 
             return {
                 valid: true,
                 userId: decoded.userId,
                 email: decoded.email,
                 role: decoded.role,
-                exp: decoded.exp
+                exp: decoded.exp,
+                decoded
             };
         } catch (error) {
             logger.error('Token verification error:', error);
@@ -85,19 +85,19 @@ class AuthService extends BaseService {
     /**
      * Logout
      */
-    async logout(token) {
+    async logout(body) {
         try {
+            const { token } = body;
+
             if (!token) {
-                throw new Error('Token is required');
+                throw new Error('TOKEN_REQUIRED');
             }
 
-            // Verify token to get user info
-            const decoded = verifyJWTToken(token);
-
+            const decoded = validVerifyToken(token);
             // Add token to blacklist
             await this._modelBlacklist.create({
                 token,
-                userId: decoded.userId,
+                type: decoded.type,
                 expiresAt: new Date(decoded.exp * 1000)
             });
 
@@ -146,7 +146,7 @@ class AuthService extends BaseService {
     async verifyResetToken(token) {
         try {
             if (!token) {
-                throw new Error('Token is required');
+                throw new Error('Reset token is required');
             }
 
             const decoded = jwt.verify(token, config.jwt.secret);
@@ -162,7 +162,7 @@ class AuthService extends BaseService {
             };
         } catch (error) {
             logger.error('Reset token verification error:', error);
-            throw new Error('Invalid or expired token');
+            throw new Error('Invalid or expired reset token');
         }
     }
 
@@ -171,22 +171,26 @@ class AuthService extends BaseService {
      */
     async confirmPasswordReset(token, userId) {
         try {
-            // Verify the token
-            const tokenData = await this.verifyResetToken(token);
-
-            if (tokenData.userId !== userId) {
-                throw new Error('Token user mismatch');
+            if (!token || !userId) {
+                throw new Error('Token and userId are required');
             }
 
-            // TODO: Update user password in user service
+            const decoded = jwt.verify(token, config.jwt.secret);
+
+            if (decoded.type !== 'password_reset' || decoded.userId !== userId) {
+                throw new Error('Invalid reset token');
+            }
+
+            // TODO: Update user password
             logger.info(`Password reset confirmed for user ${userId}`);
 
             return {
-                success: true
+                success: true,
+                userId: decoded.userId
             };
         } catch (error) {
             logger.error('Password reset confirmation error:', error);
-            throw error;
+            throw new Error('Password reset confirmation failed');
         }
     }
 
@@ -196,7 +200,7 @@ class AuthService extends BaseService {
     async verifyEmailToken(token) {
         try {
             if (!token) {
-                throw new Error('Token is required');
+                throw new Error('Email verification token is required');
             }
 
             const decoded = jwt.verify(token, config.jwt.secret);
@@ -212,7 +216,7 @@ class AuthService extends BaseService {
             };
         } catch (error) {
             logger.error('Email token verification error:', error);
-            throw new Error('Invalid or expired token');
+            throw new Error('Invalid or expired email verification token');
         }
     }
 
@@ -243,6 +247,57 @@ class AuthService extends BaseService {
             logger.error('Resend verification error:', error);
             throw error;
         }
+    }
+
+    /**
+     * Clean up expired tokens from blacklist
+     */
+    async cleanupExpiredTokens() {
+        try {
+            const result = await this._modelBlacklist.destroy({
+                where: {
+                    expiresAt: {
+                        [require('sequelize').Op.lt]: new Date()
+                    }
+                }
+            });
+
+            if (result > 0) {
+                logger.info(`🧹 Cleaned up ${result} expired tokens from blacklist`);
+            }
+
+            return {
+                success: true,
+                cleanedCount: result
+            };
+        } catch (error) {
+            logger.error('❌ Error cleaning up expired tokens:', error);
+            throw error;
+        }
+    }
+
+    /**
+     * Schedule token cleanup job
+     * This method should be called during application startup
+     */
+    scheduleTokenCleanup() {
+        const schedule = require('node-schedule');
+
+        // Run cleanup every hour
+        schedule.scheduleJob('0 * * * *', async () => {
+            try {
+                await this.cleanupExpiredTokens();
+            } catch (error) {
+                logger.error('❌ Scheduled token cleanup failed:', error);
+            }
+        });
+
+        // Also run cleanup on startup
+        this.cleanupExpiredTokens().catch((error) => {
+            logger.error('❌ Initial token cleanup failed:', error);
+        });
+
+        logger.info('⏰ Token cleanup job scheduled');
     }
 }
 

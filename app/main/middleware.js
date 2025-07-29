@@ -1,11 +1,14 @@
 // Removed express-validation dependency
 const _ = require('lodash');
 const ValidationsErrorHandler = require('./validations_error_handler');
-const validationsErrorHandler = new ValidationsErrorHandler();
 const keys = require('../../app/utils/error_mapping');
-const { validVerifyToken } = require('../../app/utils/jwt');
-const { checkTokenBlacklist, isSessionValid } = require('../../app/utils/token-blacklist');
+const message = require('../../locale/error/en.json');
 const jwt = require('jsonwebtoken');
+
+const { validVerifyToken } = require('../../app/utils/jwt');
+const { isSessionValid, globalBlacklist } = require('../../app/utils/token-blacklist');
+
+const validationsErrorHandler = new ValidationsErrorHandler();
 
 const logger = require('../utils/logger');
 
@@ -39,12 +42,9 @@ function handleError(err, req, res, next) {
             return;
         }
 
-        // Definir valores padrão se não existirem
         err.key = err.key || err.message || 'UNKNOWN_ERROR';
         err.errorCode = keys[err.key] || 500;
 
-        // Traduzir a mensagem usando o arquivo de mensagens
-        const message = require('../../locale/error/en.json');
         err.message = message[err.key] || err.message || 'Internal server error';
 
         if (err.error === 'Unprocessable Entity' || err.errors) {
@@ -80,29 +80,18 @@ function throw404(req, res, next) {
 
 async function verifyToken(req, res, next) {
     try {
-        const authHeader = req.header('Authorization');
+        const token = req.header('Authorization').replace('Bearer ', '');
 
-        if (!authHeader) {
+        if (!token) {
             const error = new Error('TOKEN_REQUIRED');
             error.status = 401;
             error.key = 'TOKEN_REQUIRED';
             return next(error);
         }
 
-        const token = authHeader.replace('Bearer ', '');
-
-        if (!token) {
-            const error = new Error('INVALID_TOKEN_FORMAT');
-            error.status = 401;
-            error.key = 'INVALID_TOKEN_FORMAT';
-            return next(error);
-        }
-
         try {
             const decodedToken = validVerifyToken({ token });
 
-            // Verificar se token está na blacklist
-            const { globalBlacklist } = require('../../app/utils/token-blacklist');
             if (globalBlacklist.isBlacklisted(token)) {
                 const error = new Error('TOKEN_BLACKLISTED');
                 error.status = 401;
@@ -110,7 +99,6 @@ async function verifyToken(req, res, next) {
                 return next(error);
             }
 
-            // Verificar se sessão ainda é válida (não foi invalidada por logout)
             const isValid = await isSessionValid(decodedToken.id, decodedToken.iat);
             if (!isValid) {
                 const error = new Error('SESSION_INVALIDATED');

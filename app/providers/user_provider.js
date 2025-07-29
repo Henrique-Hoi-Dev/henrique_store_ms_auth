@@ -4,7 +4,6 @@ const BaseIntegration = require('../api/v1/base/base_integration');
 class UserProvider extends BaseIntegration {
     constructor() {
         super('USER_MS');
-        this.client = this.httpClient;
     }
 
     /**
@@ -15,7 +14,7 @@ class UserProvider extends BaseIntegration {
      */
     async validateCredentials(email, password) {
         try {
-            const response = await this.client.post('/validate-credentials', {
+            const response = await this.client.post('/user/validate-credentials', {
                 email: email.toLowerCase(),
                 password
             });
@@ -38,7 +37,7 @@ class UserProvider extends BaseIntegration {
      */
     async getUserById(userId) {
         try {
-            const response = await this.client.get(`/${userId}`);
+            const response = await this.client.get(`/user/${userId}`);
             return response.data;
         } catch (error) {
             if (error.response?.status === 404) {
@@ -55,7 +54,7 @@ class UserProvider extends BaseIntegration {
      */
     async handleGoogleAuth(googleData) {
         try {
-            const response = await this.client.post('/google-auth', googleData);
+            const response = await this.client.post('/user/google-auth', googleData);
             return response.data;
         } catch (error) {
             if (error.response?.status === 422) {
@@ -72,7 +71,7 @@ class UserProvider extends BaseIntegration {
      */
     async updateLastLogin(userId) {
         try {
-            const response = await this.client.patch(`/${userId}/last-login`);
+            const response = await this.client.patch(`/user/${userId}/last-login`);
             return response.data;
         } catch (error) {
             logger.warn('Failed to update last login:', error.message);
@@ -88,7 +87,7 @@ class UserProvider extends BaseIntegration {
      */
     async getUser2FAInfo(userId) {
         try {
-            const response = await this.client.get(`/${userId}/2fa-info`);
+            const response = await this.client.get(`/user/${userId}/2fa-info`);
             return response.data;
         } catch (error) {
             if (error.response?.status === 404) {

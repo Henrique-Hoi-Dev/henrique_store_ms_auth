@@ -12,7 +12,7 @@ router.post(
     validator(validation.generateTokens),
     authController.generateTokens.bind(authController)
 );
-router.post('/verify-token', validator(validation.verifyToken), authController.verifyToken.bind(authController));
+router.get('/verify-token', validator(validation.verifyToken), authController.verifyToken.bind(authController));
 router.post('/logout', validator(validation.logout), authController.logout.bind(authController));
 
 // Password reset flow
@@ -43,5 +43,8 @@ router.post(
     validator(validation.resendVerification),
     authController.resendVerification.bind(authController)
 );
+
+// Admin maintenance endpoints
+router.post('/cleanup-tokens', authController.cleanupExpiredTokens.bind(authController));
 
 module.exports = router;

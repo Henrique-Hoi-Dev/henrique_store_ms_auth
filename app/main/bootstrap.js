@@ -1,8 +1,8 @@
 const dotenv = require('dotenv');
 dotenv.config();
 const { connect } = require('../../config/database');
-const { scheduleTokenCleanup } = require('../../utils/token-cleanup');
-const logger = require('../utils/logger');
+const { syncModels } = require('../../models');
+const AuthService = require('../api/v1/business/auth/auth_service');
 
 const bootstrap = async (environment = process.env.NODE_ENV ? process.env.NODE_ENV : 'development') => {
     let environmentVariabels = {};
@@ -23,8 +23,12 @@ const bootstrap = async (environment = process.env.NODE_ENV ? process.env.NODE_E
     // Connect to database
     await connect();
 
+    // Sync models with database
+    await syncModels();
+
     // Schedule token cleanup job
-    scheduleTokenCleanup();
+    const authService = new AuthService();
+    authService.scheduleTokenCleanup();
 };
 
 module.exports = bootstrap;

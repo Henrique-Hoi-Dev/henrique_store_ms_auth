@@ -5,9 +5,9 @@ const AuthModelBlacklist = require('../app/api/v1/business/auth/auth_model_black
 const syncModels = async () => {
     try {
         await sequelize.sync({ alter: true });
-        console.log('Models synchronized with database');
+        console.log('✅ Models synchronized with database');
     } catch (error) {
-        console.error('Error syncing models:', error);
+        console.error('❌ Error syncing models:', error);
     }
 };
 

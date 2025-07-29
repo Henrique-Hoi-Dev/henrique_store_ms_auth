@@ -32,7 +32,9 @@ module.exports = {
         secret: process.env.JWT_SECRET,
         refreshSecret: process.env.JWT_REFRESH_SECRET,
         accessTokenExpiry: process.env.JWT_EXPIRES_IN,
-        refreshTokenExpiry: process.env.JWT_REFRESH_EXPIRES_IN
+        refreshTokenExpiry: process.env.JWT_REFRESH_EXPIRES_IN,
+        issuer: process.env.JWT_ISSUER,
+        audience: process.env.JWT_AUDIENCE
     },
     google: {
         clientId: process.env.GOOGLE_CLIENT_ID,
